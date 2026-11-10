@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Hall Pass System</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; text-align: center; }
+    .card { background: white; max-width: 500px; margin: 20px auto; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    h1 { color: #1e293b; margin-top: 0; }
+    .room-badge { background: #e2e8f0; color: #1e293b; font-size: 20px; font-weight: bold; padding: 8px 16px; border-radius: 20px; display: inline-block; margin-bottom: 20px; }
+    label { font-size: 14px; color: #475569; }
+    input[type="text"] { width: 90%; padding: 14px; font-size: 18px; border: 2px solid #cbd5e1; border-radius: 8px; text-align: center; margin: 8px 0 20px 0; }
+    select { width: 95%; padding: 12px; font-size: 16px; border-radius: 8px; margin: 8px 0 20px 0; background: #f8fafc; border: 1px solid #cbd5e1; cursor: pointer; }
+    .btn { background: #2563eb; color: white; border: none; padding: 14px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 95%; font-weight: bold; }
+    .status { margin-top: 20px; font-weight: bold; font-size: 18px; min-height: 24px; }
+    .success { color: #059669; }
+    .error { color: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>🏫 Hall Pass Scanner</h1>
+    <div id="roomDisplay" class="room-badge">Loading Room...</div><br>
+
+    <label for="destSelect"><strong>Select Pass Destination:</strong></label><br>
+    <select id="destSelect">
+      <option value="Restroom">🚽 Restroom</option>
+      <option value="Nurse">🩺 Nurse</option>
+      <option value="Main Office">🏢 Main Office</option>
+      <option value="Library">📚 Library</option>
+      <option value="Counselor">💬 Counselor</option>
+      <option value="Dean Office">🛡️ Dean's Office</option>
+      <option value="Locker">🔓 Locker</option>
+      <option value="Water Fountain">💧 Water Fountain</option>
+    </select><br>
+
+    <label for="barcodeInput"><strong>Scan Student ID:</strong></label><br>
+    <input type="text" id="barcodeInput" placeholder="Scan Student ID Here" autofocus autocomplete="off">
+    
+    <button class="btn" onclick="processScan()">Submit Pass</button>
+
+    <div id="statusMessage" class="status"></div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwK-JlCokUYEtmuT4deCT-gOfW0bP_VnegJi7CvCUqlO9DxEFp-FLdZuz5G0I2zMIQf/exec";
+
+    // Reads room parameter from URL (?room=101)
+    const urlParams = new URLSearchParams(window.location.search);
+    const assignedRoom = urlParams.get('room') || "General Room";
+    document.getElementById('roomDisplay').innerText = `📍 Room: ${assignedRoom}`;
+
+    const input = document.getElementById('barcodeInput');
+
+    input.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        processScan();
+      }
+    });
+
+    function processScan() {
+      const studentId = input.value.trim();
+      const destination = document.getElementById('destSelect').value;
+      const statusDiv = document.getElementById('statusMessage');
+
+      if (!studentId) return;
+
+      statusDiv.className = "status";
+      statusDiv.innerText = "⏳ Logging scan...";
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: studentId,
+          room: assignedRoom,
+          destination: destination,
+          action: "Pass Out/In"
+        })
+      })
+      .then(() => {
+        statusDiv.className = "status success";
+        statusDiv.innerText = `✅ Pass logged: ID ${studentId} to ${destination}`;
+        input.value = '';
+        input.focus();
+      })
+      .catch(err => {
+        statusDiv.className = "status error";
+        statusDiv.innerText = "❌ Error logging scan.";
+        console.error(err);
+      });
+    }
+  </script>
+</body>
+</html>
